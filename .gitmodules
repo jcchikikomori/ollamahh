@@ -1,0 +1,3 @@
+[submodule "stdiff"]
+	path = stdiff
+	url = https://github.com/HFarkhari/Stable_Diffusion_WebUI.git
