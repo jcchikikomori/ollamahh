@@ -27,9 +27,11 @@ services:
     volumes:
       - ollama:/root/.ollama
       - open-webui:/app/backend/data
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "3000:8080"
     restart: always
+    privileged: true
 
 volumes:
   ollama:
