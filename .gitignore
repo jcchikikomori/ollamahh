@@ -1,3 +1,3 @@
-!**/.gitinclude
-stdiff/repositories/stable-diffusion-stability-ai
 .vscode/
+stdiff
+!**/.gitinclude
