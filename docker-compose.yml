@@ -24,6 +24,9 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:ollama
     container_name: open-webui
+    environment:
+      - ENABLE_IMAGE_GENERATION=1
+      - AUTOMATIC1111_BASE_URL=stable-diffusion:7860
     volumes:
       - ollama:/root/.ollama
       - open-webui:/app/backend/data
@@ -33,6 +36,29 @@ services:
     restart: always
     privileged: true
 
+  stable-diffusion:
+    image: universonic/stable-diffusion-webui:latest
+    container_name: stable-diffusion-webui
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - COMMANDLINE_ARGS=--listen --xformers --enable-insecure-extension-access --api
+      - CLI_ARGS=--allow-code --medvram --xformers --enable-insecure-extension-access --api
+    volumes:
+      - ./stdiff-webui/stable-diffusion-webui:/stable-diffusion-webui
+      - stable-diffusion-models:/stable-diffusion-webui/models
+      - stable-diffusion-outputs:/stable-diffusion-webui/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 volumes:
   ollama:
   open-webui:
+  stable-diffusion-models:
+  stable-diffusion-outputs:

@@ -1,2 +1,5 @@
+stdiff-webui/stable-diffusion-env/
 stdiff-webui/stable-diffusion-webui/
-
+!stdiff-webui/stable-diffusion-env/.gitinclude
+!stdiff-webui/stable-diffusion-webui/.gitinclude
+.vscode/
