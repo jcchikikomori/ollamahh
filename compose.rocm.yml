@@ -1,0 +1,121 @@
+# docker-compose.yml
+services:
+  sd-webui:
+    build:
+      context: pytorch/rocm/
+      dockerfile: Dockerfile
+    expose:
+      - 7860:7860
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    networks:
+      - internal
+    restart: unless-stopped
+    volumes:
+      - sd-webui:/data/stable-diffusion-webui/models
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sd-webui.rule=Host(`localhost`)
+      - traefik.http.routers.sd-webui.entrypoints=sd-web
+      - traefik.http.routers.sd-webui.tls=true
+      - traefik.http.services.sd-webui.loadbalancer.server.port=7860
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    expose:
+      - 11434:11434
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      - internal
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ollama.rule=Host(`localhost`)
+      - traefik.http.routers.ollama.entrypoints=web-insecure
+      - traefik.http.services.ollama.loadbalancer.server.port=11434
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  open-webui:
+    container_name: open-webui
+    image: ghcr.io/open-webui/open-webui:main
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - ollama
+    environment:
+      - "ENABLE_SIGNUP=true"
+      - "OLLAMA_BASE_URL=http://ollama:11434"
+      - "AUTOMATIC1111_BASE_URL=http://sd-webui:7860/"
+      - "ENABLE_IMAGE_GENERATION=true"
+      - "IMAGE_GENERATION_MODEL=v1-5-pruned-emaonly"
+      - "IMAGE_SIZE=640x800"
+    expose:
+      - 8080:8080
+    networks:
+      - internal
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.open-webui.rule=Host(`localhost`)
+      - traefik.http.routers.open-webui.entrypoints=web
+      - traefik.http.routers.open-webui.tls=true
+      - traefik.http.services.open-webui.loadbalancer.server.port=8080
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  traefik:
+    image: traefik:2.10.4
+    command:
+      - --log.level=DEBUG
+      - --accessLog=true
+      - --providers.docker=true
+      - --providers.docker.network=internal
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.sd-web.address=:7860
+      - --entrypoints.web-insecure.address=:11434
+      # enables insecure mgmt api on 8080
+      - --api.insecure=true
+    ports:
+      - 8443:80
+      - 8444:8080
+      - 11434:11434
+      - 7860:7860
+    networks:
+      - internal
+    restart: unless-stopped
+    volumes:
+      - /run/user/1000/docker.sock:/var/run/docker.sock:ro
+
+volumes:
+  ollama: {}
+  open-webui: {}
+  sd-webui: {}
+
+networks:
+  internal:
+    driver: bridge

@@ -13,7 +13,8 @@ if ! git submodule update --init --recursive --force --depth=1; then
 fi
 
 # Start the services using docker-compose
-if ! docker compose up; then
+# TODO: Choose/autodetect between compose.nvidia.yml and compose.rocm.yml
+if ! docker compose -f compose.nvidia.yml up; then
   echo "Failed to start containers using docker-compose"
   exit 1
 fi
